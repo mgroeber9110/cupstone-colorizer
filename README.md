@@ -29,4 +29,4 @@ This image shows stone "38" at the [Pfitscher Sattel](https://www.rgroeber.de/pf
 
 ## Literature
 
-Bratke, M., Kersten, T., Lindstaedt, M., & Nösler, D. (2025). 3D-Erfassung von Schalensteinen im Landkreis Stade durch SfM-Photogrammetrie und ihre Visualisierung in Cesium. Unveröffentliche Bachelorarbeit im Studiengang Geodäsie und Geoinformatik, HafenCity Universität Hamburg.
+Bratke, M., Kersten, T., Lindstaedt, M., & Nösler, D. (2025). 3D-Erfassung von Schalensteinen im Landkreis Stade durch SfM-Photogrammetrie und ihre Visualisierung in Cesium. Publikationen der DGPF, Band 34, 2026.
