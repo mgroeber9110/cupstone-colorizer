@@ -17,6 +17,7 @@ python colorize_stone.py Nr38.obj Nr38_colored.obj --scale 0.15 --fine 0.02 --le
 - `--clip`, `--gamma`: contrast stretch; lower gamma boosts faint features.
 - `--terrain`: grays out rough terrain (grass, gravel) and leaves it out of the contrast stretch. `auto` (default) finds the roughness threshold itself; `off` colors everything; a number sets the threshold in mesh units.
 - `--level`: rotate the output so the stone lies flat. The coloring itself does not depend on orientation.
+- `--export-smoothed PATH.obj`: also write the smoothed reference surface (smoothed at `--scale`) that the relief is measured against, without vertex colors so the shape is easy to judge from shading, and with the same `--level` rotation, so it can be overlaid on the colored output in MeshLab. With `--fine`, the fine-smoothed surface is written as `PATH_fine.obj` too (the relief is the distance between the two).
 
 The output .obj drops the texture reference so MeshLab shows vertex colors.
 

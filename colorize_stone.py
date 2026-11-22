@@ -64,6 +64,23 @@ def write_obj(src, dst, colors, rotation=None, center=None):
                 fo.write(line)
 
 
+def write_mesh_obj(dst, V, F, colors=None, rotation=None, center=None, comment=None):
+    """Write a plain OBJ (vertices, optional vertex colors, normals, triangles)."""
+    if rotation is not None:
+        V = (V - center) @ rotation.T
+    N = vertex_normals(V, F)
+    with open(dst, "w") as fo:
+        if comment:
+            fo.write("".join(f"# {c}\n" for c in comment.splitlines()))
+        if colors is None:
+            fo.writelines(f"v {p[0]:.7f} {p[1]:.7f} {p[2]:.7f}\n" for p in V)
+        else:
+            fo.writelines(f"v {p[0]:.7f} {p[1]:.7f} {p[2]:.7f} {c[0]:.6f} {c[1]:.6f} {c[2]:.6f}\n"
+                          for p, c in zip(V, colors))
+        fo.writelines(f"vn {n[0]:.7f} {n[1]:.7f} {n[2]:.7f}\n" for n in N)
+        fo.writelines(f"f {a}//{a} {b}//{b} {c}//{c}\n" for a, b, c in F + 1)
+
+
 # ---------------------------------------------------------------- geometry
 def vertex_normals(V, F):
     fn = np.cross(V[F[:, 1]] - V[F[:, 0]], V[F[:, 2]] - V[F[:, 0]])  # area weighted
@@ -112,13 +129,18 @@ class Smoother:
         return np.column_stack([solve(B[:, k]) for k in range(X.shape[1])])
 
 
-def local_relief(V, F, scale, fine=0.0, S=None):
-    """Signed distance of the fine-smoothed surface above the coarse-smoothed one."""
+def local_relief(V, F, scale, fine=0.0, S=None, return_surfaces=False):
+    """Signed distance of the fine-smoothed surface above the coarse-smoothed one.
+
+    With return_surfaces=True also returns (coarse, detail) vertex positions:
+    the reference surface the relief is measured against, and the
+    fine-smoothed surface (equal to V when fine == 0)."""
     S = S or Smoother(V, F)
     coarse = S(V, scale / 2.0)  # sigma ~ half the feature size
     detail = S(V, fine / 2.0) if fine > 0 else V
     N = vertex_normals(coarse, F)
-    return np.einsum("ij,ij->i", detail - coarse, N)
+    r = np.einsum("ij,ij->i", detail - coarse, N)
+    return (r, coarse, detail) if return_surfaces else r
 
 
 def roughness(V, F, smoother, radius):
@@ -208,6 +230,10 @@ def main(argv=None):
     p.add_argument("--level", action="store_true",
                    help="also rotate the output so the stone lies flat (best-fit plane horizontal)")
     p.add_argument("--save-relief", metavar="NPY", help="save raw per-vertex relief values")
+    p.add_argument("--export-smoothed", metavar="OBJ",
+                   help="also write the smoothed reference surface (smoothed at --scale) that the relief is "
+                        "measured against, without colors (plain shading), for inspection e.g. in MeshLab. If --fine "
+                        "is set, the fine-smoothed surface is written next to it as <name>_fine.obj")
     a = p.parse_args(argv)
 
     print(f"reading {a.input} ...", file=sys.stderr)
@@ -218,7 +244,7 @@ def main(argv=None):
           file=sys.stderr)
 
     S = Smoother(V, F)
-    r = local_relief(V, F, scale, a.fine, S)
+    r, coarse, detail = local_relief(V, F, scale, a.fine, S, return_surfaces=True)
     if a.save_relief:
         np.save(a.save_relief, r)
     weight = None
@@ -234,6 +260,20 @@ def main(argv=None):
         rot, ctr = level_rotation(V, F)
     write_obj(a.input, a.output, colors, rot, ctr)
     print(f"wrote {a.output}", file=sys.stderr)
+
+    if a.export_smoothed:
+        info = f"smoothed surface of {a.input}\n"
+        write_mesh_obj(a.export_smoothed, coarse, F, None, rot, ctr,
+                       info + f"reference surface, heat diffusion sigma={scale / 2:.4g} (--scale {scale:.4g})")
+        d = np.linalg.norm(V - coarse, axis=1)
+        print(f"wrote {a.export_smoothed} (vertex displacement mean {d.mean():.3g}, max {d.max():.3g})",
+              file=sys.stderr)
+        if a.fine > 0:
+            stem = a.export_smoothed[:-4] if a.export_smoothed.lower().endswith(".obj") else a.export_smoothed
+            fine_path = stem + "_fine.obj"
+            write_mesh_obj(fine_path, detail, F, None, rot, ctr,
+                           info + f"fine surface, heat diffusion sigma={a.fine / 2:.4g} (--fine {a.fine:.4g})")
+            print(f"wrote {fine_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":
