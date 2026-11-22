@@ -232,7 +232,7 @@ def main(argv=None):
     p.add_argument("--save-relief", metavar="NPY", help="save raw per-vertex relief values")
     p.add_argument("--export-smoothed", metavar="OBJ",
                    help="also write the smoothed reference surface (smoothed at --scale) that the relief is "
-                        "measured against, colored like the output, for inspection e.g. in MeshLab. If --fine "
+                        "measured against, without colors (plain shading), for inspection e.g. in MeshLab. If --fine "
                         "is set, the fine-smoothed surface is written next to it as <name>_fine.obj")
     a = p.parse_args(argv)
 
@@ -263,7 +263,7 @@ def main(argv=None):
 
     if a.export_smoothed:
         info = f"smoothed surface of {a.input}\n"
-        write_mesh_obj(a.export_smoothed, coarse, F, colors, rot, ctr,
+        write_mesh_obj(a.export_smoothed, coarse, F, None, rot, ctr,
                        info + f"reference surface, heat diffusion sigma={scale / 2:.4g} (--scale {scale:.4g})")
         d = np.linalg.norm(V - coarse, axis=1)
         print(f"wrote {a.export_smoothed} (vertex displacement mean {d.mean():.3g}, max {d.max():.3g})",
@@ -271,7 +271,7 @@ def main(argv=None):
         if a.fine > 0:
             stem = a.export_smoothed[:-4] if a.export_smoothed.lower().endswith(".obj") else a.export_smoothed
             fine_path = stem + "_fine.obj"
-            write_mesh_obj(fine_path, detail, F, colors, rot, ctr,
+            write_mesh_obj(fine_path, detail, F, None, rot, ctr,
                            info + f"fine surface, heat diffusion sigma={a.fine / 2:.4g} (--fine {a.fine:.4g})")
             print(f"wrote {fine_path}", file=sys.stderr)
 
